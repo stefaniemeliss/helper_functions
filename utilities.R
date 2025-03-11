@@ -26,3 +26,28 @@ get_file_stem <- function() {
   return(file_stem)
 }
 
+# Function to dynamically identify the root directory and the subdirectory one level below
+get_directory <- function(root_dir_name = "code") {
+  # Get the current working directory
+  current_dir <- getwd()
+  
+  # Split the current directory into its components
+  dir_components <- strsplit(current_dir, "/")[[1]]
+  
+  # Identify the root directory dynamically based on the provided root directory name
+  root_index <- which(dir_components == root_dir_name)
+  if (length(root_index) == 0) {
+    stop(paste("Root directory", root_dir_name, "not found in the current path"))
+  }
+  root_dir <- do.call(file.path, as.list(dir_components[1:root_index]))
+  
+  # Identify the subdirectory one level below the root and construct its absolute path
+  project_folder <- dir_components[root_index + 1]
+  dir <- file.path(root_dir, project_folder)
+  
+  # Export the root and subdirectory to the global environment
+  assign("dir_root", root_dir, envir = .GlobalEnv)
+  assign("project_folder", project_folder, envir = .GlobalEnv)
+  assign("dir", dir, envir = .GlobalEnv)
+}
+
