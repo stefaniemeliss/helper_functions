@@ -1,3 +1,18 @@
+#### AMBITION THEME ####
+
+# source code
+source_code(target_repo = "ambition_theme", file_name = "ambition_theme.R")
+
+# combine to palette
+ambition_palette_bright <- c(cyan, coral, teal, purple, orange) # bright palette
+ambition_palette_accent <- c(yellow, blue, red)
+ambition_palette <- c(coral, teal, purple, orange, blue, red, cyan, yellow) # de-prioritise cyan and yellow
+
+# declare dominant and non-dominant colour in plots
+dominant_col <- coral
+nondominant_col <- navy
+
+
 # functions for data display #
 
 table_desc <- function(data = df, group_var = "group", dep_var = "variable"){
