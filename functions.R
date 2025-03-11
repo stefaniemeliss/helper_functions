@@ -48,3 +48,8 @@ source_code <- function(root_dir_name = "code", target_repo = "helper_functions"
     source(file_path, local = parent.frame())
   }
 }
+
+# source code
+source_code(target_repo = "helper_functions", file_name = "utilities.R")
+source_code(target_repo = "helper_functions", file_name = "data_processing.R")
+source_code(target_repo = "helper_functions", file_name = "data_display.R")
