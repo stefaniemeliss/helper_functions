@@ -24,3 +24,29 @@ rbind.all.columns <- function(x, y) {
   return(rbind(x, y))
 }
 
+# Define function to make split a collapsed column into separate columns
+create_element_columns <- function(data, column_name, separator = "|", drop = F) {
+  
+  # Escape special characters in the separator for splitting
+  special_chars <- c(":", ";", ",", ".", "_", "-", "|", "/")
+  escaped_separator <- separator
+  for (char in special_chars) {
+    escaped_separator <- gsub(char, paste0("\\", char), escaped_separator, fixed = TRUE)
+  }
+  
+  # Split the column values using the provided separator
+  elements <- unique(unlist(strsplit(paste(data[[column_name]], collapse = separator), split = escaped_separator)))
+  elements <- unique(trimws(elements))  # Remove leading/trailing spaces
+  elements <- elements[elements != ""]  # Remove empty elements
+  
+  # Create columns for each element dynamically
+  for (element in elements) {
+    col_name <- paste0(column_name, "_", tolower(gsub("[^a-zA-Z0-9]", "_", element)))
+    data <- data %>%
+      mutate(!!col_name := grepl(element, .data[[column_name]]))
+  }
+  
+  if (drop) data[[column_name]] <- NULL
+  
+  return(data)
+}
