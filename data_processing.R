@@ -50,3 +50,20 @@ create_element_columns <- function(data, column_name, separator = "|", drop = F)
   
   return(data)
 }
+
+calculate_snr <- function(data, window_size) {
+  # Calculate the signal using moving average
+  signal <- zoo::rollapply(data, width = window_size, FUN = mean, fill = NA, align = "center")
+  
+  # Calculate the noise
+  noise <- data - signal
+  
+  # Estimate power of signal and noise
+  signal_power <- var(na.omit(signal))
+  noise_power <- var(na.omit(noise))
+  
+  # Calculate SNR
+  snr <- signal_power / noise_power
+  
+  return(snr)
+}
