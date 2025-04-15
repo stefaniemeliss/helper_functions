@@ -77,3 +77,46 @@ calculate_snr <- function(data, window_size) {
   
   return(snr)
 }
+
+# Improved SNR function with robust error handling and power calculation
+calculate_snr <- function(data, window_size) {
+  # Check inputs
+  if(!is.numeric(data)) stop("Data must be numeric")
+  if(window_size < 1 || window_size > length(data)) 
+    stop("Window size must be between 1 and length of data")
+  
+  # Calculate the signal using moving average
+  signal <- zoo::rollapply(data, width = window_size, FUN = mean, 
+                           fill = NA, align = "center")
+  
+  # Calculate the noise
+  noise <- data - signal
+  
+  # Remove NA values
+  valid_indices <- !is.na(signal)
+  clean_signal <- signal[valid_indices]
+  clean_noise <- noise[valid_indices]
+  
+  # Estimate power of signal and noise
+  signal_power <- mean(clean_signal^2)
+  noise_power <- mean(clean_noise^2)
+  
+  # Calculate SNR with safety check
+  if(noise_power < .Machine$double.eps) {
+    warning("Noise power near zero, returning Inf")
+    return(Inf)
+  }
+  
+  snr <- signal_power / noise_power
+  
+  return(snr)
+  
+  # Return SNR in decibels for easier interpretation
+  snr_db <- 10 * log10(snr)
+  # snr_db > 20 - "Very strong trend signal - workforce changes follow highly predictable patterns"
+  # snr_db > 10 - "Strong trend signal - workforce changes are largely predictable with minor fluctuations"
+  # snr_db >  3 - "Moderate trend signal - workforce shows clear trends with some volatility"
+  # snr_db >  0 - "Weak trend signal - workforce changes have trends but significant volatility")
+  # else "Very weak trend signal - workforce changes appear largely random or highly volatile")
+  
+}
