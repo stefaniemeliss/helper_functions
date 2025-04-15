@@ -1,14 +1,24 @@
 # functions for data processing #
 
 # function to determine outliers
-is_outlier_iqr <- function(x) {
+is_outlier_iqr <- function(x, show.bounds = F) {
+  # compute boundaries
   # +/- 1.5*IQR
-  return(x < quantile(x, 0.25, na.rm = T) - 1.5 * IQR(x, na.rm = T) | x > quantile(x, 0.75, na.rm = T) + 1.5 * IQR(x, na.rm = T))
+  bound_lo <- quantile(x, 0.25, na.rm = T) - 1.5 * IQR(x, na.rm = T)
+  bound_up <- quantile(x, 0.75, na.rm = T) + 1.5 * IQR(x, na.rm = T)
+  
+  if(show.bounds) return(list("bound_lo" = bound_lo, "bound_up" = bound_up))
+  else return(x < bound_lo | x > bound_up)
 }
 
-is_outlier_3sd <- function(x) {
-  # +/- 1.5*IQR
-  return(x < mean(x, na.rm = T) - 3 * sd(x, na.rm = T) | x > mean(x, na.rm = T) + 3 * sd(x, na.rm = T))
+is_outlier_3sd <- function(x, show.bounds = F) {
+  # compute boundaries
+  # +/- 3*SD
+  bound_lo <- mean(x, na.rm = T) - 3 * sd(x, na.rm = T)
+  bound_up <- mean(x, na.rm = T) + 3 * sd(x, na.rm = T)
+  
+  if(show.bounds) return(list("bound_lo" = bound_lo, "bound_up" = bound_up))
+  else return(x < bound_lo | x > bound_up)
 }
 
 # rbind all columns
