@@ -5,7 +5,7 @@ source_code(target_repo = "ambition_theme", file_name = "ambition_theme.R")
 
 # combine to palette
 ambition_palette_bright <- c(cyan, coral, teal, purple, orange) # bright palette
-ambition_palette_accent <- c(yellow, blue, red)
+ambition_palette_accent <- c(blue, red, yellow) # de-prioritise yellow
 ambition_palette <- c(coral, teal, purple, orange, blue, red, cyan, yellow) # de-prioritise cyan and yellow
 
 # declare dominant and non-dominant colour in plots
