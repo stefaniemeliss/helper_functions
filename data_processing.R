@@ -1,6 +1,40 @@
 # functions for data processing #
+# -------------------------------------------------------------------
+# Core low-level helpers for:
+# - completeness flags,
+# - identifying binary variables, and
+# - simple outlier flags based on IQR or SD.
+# These utilities are reused in later processing and diagnostics.
+# -------------------------------------------------------------------
+
+# check for completeness
+# is_completed(x)
+# ----------------
+# Returns FALSE for missing values (NA) and TRUE otherwise, so it can be
+# used to create simple completeness indicators at item or row level.
+is_completed <- function(x) {
+  return(ifelse(is.na(x), F, T))
+}
+
+# Helper function to check if a variable is binary (0/1)
+# is_binary(x)
+# ------------
+# Checks whether the unique non-missing values of x are exactly {0, 1}.
+# Used to distinguish true binary indicators from other numeric variables
+# in downstream functions (e.g. standardisation, correlations).
+is_binary <- function(x) {
+  vals <- na.omit(unique(x))
+  length(vals) == 2 && all(vals %in% c(0, 1))
+}
 
 # function to determine outliers
+# is_outlier_iqr(x, show.bounds = FALSE)
+# --------------------------------------
+# Flags outliers using the 1.5 * IQR rule:
+#   lower bound = Q1 - 1.5 * IQR
+#   upper bound = Q3 + 1.5 * IQR
+# If show.bounds = TRUE, returns a list with the numeric bounds instead
+# of the logical outlier flag.
 is_outlier_iqr <- function(x, show.bounds = F) {
   # compute boundaries
   # +/- 1.5*IQR
@@ -11,6 +45,13 @@ is_outlier_iqr <- function(x, show.bounds = F) {
   else return(x < bound_lo | x > bound_up)
 }
 
+# is_outlier_3sd(x, show.bounds = FALSE)
+# --------------------------------------
+# Flags outliers using a ±3 * SD rule:
+#   lower bound = mean - 3 * sd
+#   upper bound = mean + 3 * sd
+# If show.bounds = TRUE, returns a list with the numeric bounds instead
+# of the logical outlier flag.
 is_outlier_3sd <- function(x, show.bounds = F) {
   # compute boundaries
   # +/- 3*SD
@@ -20,6 +61,13 @@ is_outlier_3sd <- function(x, show.bounds = F) {
   if(show.bounds) return(list("bound_lo" = bound_lo, "bound_up" = bound_up))
   else return(x < bound_lo | x > bound_up)
 }
+
+# -------------------------------------------------------------------
+# Helpers for combining data frames with differing column structures.
+# rbind.match.columns  : keep only shared columns and row-bind.
+# rbind.all.columns    : keep union of columns and fill missing with NA.
+# Original source: see Amy Whitehead’s blog post referenced above.
+# -------------------------------------------------------------------
 
 # these functions have been found online here https://amywhiteheadresearch.wordpress.com/2013/05/13/combining-dataframes-when-the-columns-dont-match/
 
@@ -60,7 +108,17 @@ rbind.all.columns <- function(x, y) {
   return(rbind(x, y))
 }
 
-# Define function to make split a collapsed column into separate columns
+
+# ---- Expanding collapsed multiple-response columns -------------------------
+# create_element_columns(data, column_name, separator = "|", drop = FALSE)
+# ------------------------------------------------------------------------
+# Takes a column containing collapsed multiple responses (e.g. "A|C|D")
+# and creates a set of indicator columns, one per unique element.
+# - Splits all values in 'column_name' at 'separator'.
+# - Normalises and deduplicates the resulting elements.
+# - For each element, creates a new logical column:
+#     <column_name>_<element>  (TRUE if element present in that row).
+# - If drop = TRUE, removes the original collapsed column.
 create_element_columns <- function(data, column_name, separator = "|", drop = F) {
   
   # Escape special characters in the separator for splitting
@@ -73,7 +131,8 @@ create_element_columns <- function(data, column_name, separator = "|", drop = F)
   # Split the column values using the provided separator
   elements <- unique(unlist(strsplit(paste(data[[column_name]], collapse = separator), split = escaped_separator)))
   elements <- unique(trimws(elements))  # Remove leading/trailing spaces
-  elements <- elements[elements != ""]  # Remove empty elements
+  elements <- elements[elements != ""   # Remove empty elements
+  ]
   
   # Create columns for each element dynamically
   for (element in elements) {
@@ -85,6 +144,41 @@ create_element_columns <- function(data, column_name, separator = "|", drop = F)
   if (drop) data[[column_name]] <- NULL
   
   return(data)
+}
+
+# ---- Splitting multiple-choice responses -----------------------------------
+# split_responses(response_id, response, options)
+# ----------------------------------------------
+# Helper used by multiple-choice item processors.
+# - response_id: respondent identifier.
+# - response: raw collapsed response string (options separated by commas).
+# - options: full vector of all possible response labels.
+# Logic:
+# - Protect commas that are part of option labels with a placeholder.
+# - Replace remaining commas (between options) with a custom delimiter.
+# - Split on that delimiter and map back to the options vector.
+# Returns c(response_id, response, <one column per option>).
+split_responses <- function(response_id, response, options) {
+  if (response == "" | is.na(response)) {
+    result <- rep("", length(options))
+  } else {
+    # Temporarily replace commas within options with a placeholder
+    for (option in options) {
+      response <- gsub(option, gsub(",", "COMMA", option), response, fixed = TRUE)
+    }
+    # Replace remaining commas (between options) with a unique delimiter
+    response <- gsub(",", "DELIM", response, fixed = TRUE)
+    # Restore the commas within the options
+    response <- gsub("COMMA", ",", response, fixed = TRUE)
+    # Split the response using the unique delimiter
+    selected <- unlist(strsplit(response, "DELIM", fixed = TRUE))
+    selected <- selected[selected != ""]
+    selected <- match(selected, options)
+    selected <- selected[!is.na(selected)]  # Remove NA values
+    result <- rep("", length(options))
+    result[selected] <- options[selected]
+  }
+  return(c(response_id, response, result))
 }
 
 calculate_snr <- function(data, window_size) {
