@@ -3,9 +3,7 @@
 # Source the project-specific ggplot theme and colour definitions.
 # This script defines colours (e.g. coral, teal) and the 'ambition_theme'
 # object used across all plots.
-source(file = list.files(pattern = "ambition_theme.R",
-                         recursive = TRUE,
-                         full.names = TRUE))
+source_code(target_repo = "ambition_theme", file_name = "ambition_theme.R")
 
 # Construct colour palettes used in figures.
 # - 'bright' palette: main colours with reduced use of cyan.
